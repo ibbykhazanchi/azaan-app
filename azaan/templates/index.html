@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🕌 Prayer Times - Princeton, NJ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        .header {
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .location {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .date {
+            font-size: 1em;
+            opacity: 0.8;
+        }
+        
+        .next-prayer {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .next-prayer h2 {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            color: #FFD700;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        .countdown {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 15px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            font-family: 'Courier New', monospace;
+        }
+        
+        .prayer-time {
+            font-size: 1.3em;
+            opacity: 0.9;
+        }
+        
+        .prayer-times {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .prayer-times h3 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #FFD700;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        .prayer-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .prayer-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.2s, background 0.2s;
+        }
+        
+        .prayer-item:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .prayer-item.next {
+            background: rgba(255, 215, 0, 0.2);
+            border: 1px solid rgba(255, 215, 0, 0.4);
+            transform: scale(1.05);
+        }
+        
+        .prayer-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+        
+        .prayer-time-display {
+            font-size: 1.2em;
+            color: #E0E0E0;
+        }
+        
+        .loading {
+            font-size: 1.2em;
+            opacity: 0.8;
+        }
+        
+        .error {
+            color: #ff6b6b;
+            font-size: 1.1em;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .countdown {
+                font-size: 2em;
+            }
+            
+            .prayer-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🕌 Prayer Times</h1>
+            <div class="location" id="location">Princeton, US</div>
+            <div class="date" id="date">Loading...</div>
+        </div>
+        
+        <div class="next-prayer">
+            <h2>Next Prayer</h2>
+            <div id="next-prayer-name" class="prayer-time">Loading...</div>
+            <div id="countdown" class="countdown">--:--:--</div>
+            <div id="next-prayer-time" class="prayer-time">at --:--</div>
+        </div>
+        
+        <div class="prayer-times">
+            <h3>Today's Prayer Times</h3>
+            <div class="prayer-list" id="prayer-list">
+                <div class="loading">Loading prayer times...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let nextPrayerName = '';
+        
+        function updateCountdown(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        function fetchPrayerTimes() {
+            fetch('/api/prayer-times')
+                .then(response => response.json())
+                .then(data => {
+                    // Update location and date
+                    document.getElementById('location').textContent = data.location;
+                    document.getElementById('date').textContent = data.date;
+                    
+                    // Update next prayer
+                    const nextPrayer = data.next_prayer;
+                    document.getElementById('next-prayer-name').textContent = nextPrayer.name;
+                    document.getElementById('next-prayer-time').textContent = `at ${nextPrayer.time}`;
+                    nextPrayerName = nextPrayer.name;
+                    
+                    // Start countdown
+                    startCountdown(nextPrayer.countdown_seconds);
+                    
+                    // Update prayer times list
+                    const prayerList = document.getElementById('prayer-list');
+                    prayerList.innerHTML = '';
+                    
+                    Object.entries(data.prayer_times).forEach(([prayer, time]) => {
+                        const prayerItem = document.createElement('div');
+                        prayerItem.className = `prayer-item ${prayer === nextPrayer.name ? 'next' : ''}`;
+                        prayerItem.innerHTML = `
+                            <div class="prayer-name">${prayer}</div>
+                            <div class="prayer-time-display">${time}</div>
+                        `;
+                        prayerList.appendChild(prayerItem);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching prayer times:', error);
+                    document.getElementById('prayer-list').innerHTML = '<div class="error">Error loading prayer times</div>';
+                });
+        }
+        
+        function startCountdown(initialSeconds) {
+            let seconds = initialSeconds;
+            
+            function updateDisplay() {
+                if (seconds <= 0) {
+                    document.getElementById('countdown').textContent = 'Prayer Time!';
+                    // Refresh data after prayer time
+                    setTimeout(fetchPrayerTimes, 5000);
+                    return;
+                }
+                
+                document.getElementById('countdown').textContent = updateCountdown(seconds);
+                seconds--;
+            }
+            
+            updateDisplay();
+            const countdownInterval = setInterval(updateDisplay, 1000);
+            
+            // Clear previous interval if exists
+            if (window.currentCountdown) {
+                clearInterval(window.currentCountdown);
+            }
+            window.currentCountdown = countdownInterval;
+        }
+        
+        // Initial load
+        fetchPrayerTimes();
+        
+        // Refresh prayer times every 5 minutes
+        setInterval(fetchPrayerTimes, 5 * 60 * 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+requests==2.31.0
+pygame==2.5.2
+schedule==1.2.0
+flask==3.0.0
